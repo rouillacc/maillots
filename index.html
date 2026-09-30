@@ -8,6 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- SDKs Firebase Compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
   :root {
     --cobalt: #1b3fa6;
@@ -31,7 +36,6 @@
   }
 
   * { box-sizing: border-box; }
-
   html { -webkit-text-size-adjust: 100%; }
 
   body {
@@ -50,7 +54,6 @@
 
   .wrap { max-width: 720px; margin: 0 auto; }
 
-  /* ---------- En-tête façon maillot ---------- */
   header.hero {
     background:
       repeating-linear-gradient(115deg, rgba(255,255,255,.055) 0 18px, transparent 18px 36px),
@@ -82,6 +85,20 @@
     letter-spacing: .5px;
     flex: none;
   }
+
+  .cloud-badge {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(0,0,0,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cloud-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffaa00; }
+  .cloud-dot.online { background: #34d399; box-shadow: 0 0 8px #34d399; }
 
   h1 {
     font-family: var(--display);
@@ -159,7 +176,6 @@
 
   #csv-file { display: none; }
 
-  /* ---------- Recherche + onglets ---------- */
   .toolbar {
     position: sticky;
     top: 0;
@@ -168,9 +184,7 @@
     padding-top: calc(14px + env(safe-area-inset-top, 0px));
     background: linear-gradient(180deg, var(--sky) 78%, rgba(238,243,251,0));
   }
-  .search {
-    position: relative;
-  }
+  .search { position: relative; }
   .search svg {
     position: absolute; left: 14px; top: 50%;
     width: 20px; height: 20px;
@@ -188,7 +202,6 @@
     background: var(--paper);
     color: var(--ink);
   }
-  #search::placeholder { color: #8a97b3; }
   #search:focus { border-color: var(--cobalt); outline: none; }
 
   .tabs {
@@ -231,7 +244,6 @@
   .tab[aria-selected="true"] .count { background: var(--cobalt); color: #fff; }
   .tab[data-tab="done"][aria-selected="true"] .count { background: var(--mint); }
 
-  /* ---------- Liste ---------- */
   .list { padding: 4px 14px 0; display: grid; gap: 10px; }
 
   .student {
@@ -328,7 +340,6 @@
   }
   .btn-cancel:active { background: var(--coral-bg); }
 
-  /* ---------- États vides ---------- */
   .empty {
     text-align: center;
     padding: 36px 20px;
@@ -353,7 +364,6 @@
   .empty p { margin: 0 auto 16px; max-width: 32ch; line-height: 1.45; }
   .empty .btn-primary { background: var(--cobalt); color: #fff; }
 
-  /* ---------- Notification ---------- */
   #notif {
     position: fixed;
     left: 50%;
@@ -373,16 +383,6 @@
   #notif.show { opacity: 1; transform: translate(-50%, 0); }
   #notif.ok { background: var(--ink); color: #fff; }
   #notif.err { background: var(--coral); color: #fff; }
-
-  @media (max-width: 380px) {
-    .btn-size { height: 42px; font-size: 1.05rem; }
-    .btn-size.small { font-size: .85rem; }
-    .sizes { gap: 4px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation: none !important; transition: none !important; }
-  }
 </style>
 </head>
 <body>
@@ -392,6 +392,10 @@
     <div class="club">
       <span class="club-badge">AS</span>
       <span>AS Claudie Haigneré · Rouillac</span>
+      <span class="cloud-badge" id="cloud-status">
+        <span class="cloud-dot" id="cloud-dot"></span>
+        <span id="cloud-text">Connexion...</span>
+      </span>
     </div>
     <h1>Distribution<br>des T-shirts</h1>
 
@@ -443,6 +447,19 @@
 <div id="notif" role="status"></div>
 
 <script>
+  /* =====================================================================
+     CONFIGURATION FIREBASE DU PROJET MAILLOTS-A8927
+     ===================================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyB-YxRRl5hqloBnM1lnXn49v8jIKdg6V58",
+    authDomain: "maillots-a8927.firebaseapp.com",
+    databaseURL: "https://maillots-a8927-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "maillots-a8927",
+    storageBucket: "maillots-a8927.firebasestorage.app",
+    messagingSenderId: "112094741681",
+    appId: "1:112094741681:web:11259574f2fc7be9394e90"
+  };
+
   const TAILLES = ['12/14A', 'XS', 'S', 'M', 'L', 'XL'];
   const STORAGE_KEY = 'as_tshirts_opuss';
 
@@ -452,6 +469,8 @@
   let onglet = 'wait';
   let dernierValide = null;
   let notifTimer;
+  let db = null;
+  let resetTimer = null;
 
   const $ = id => document.getElementById(id);
 
@@ -467,13 +486,51 @@
     notifTimer = setTimeout(() => el.classList.remove('show'), 4500);
   }
 
+  /* ---------- Initialisation Firestore Temps Réel ---------- */
+  function initFirestore() {
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+
+      // Synchronisation en direct
+      db.collection('as_tshirts_haignere').doc('campagne_actuelle').onSnapshot(doc => {
+        $('cloud-text').textContent = "En direct";
+        $('cloud-dot').className = "cloud-dot online";
+
+        if (doc.exists && doc.data().eleves) {
+          eleves = doc.data().eleves;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves));
+          rendre();
+        }
+      }, err => {
+        console.warn("Connexion Firestore impossible :", err);
+        $('cloud-text').textContent = "Hors ligne";
+        $('cloud-dot').className = "cloud-dot";
+      });
+    } catch(err) {
+      console.warn("Erreur init Firebase :", err);
+      $('cloud-text').textContent = "Mode Local";
+    }
+  }
+
   function sauvegarder() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves)); }
-    catch (e) { notification("Sauvegarde impossible sur cet appareil.", true); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves)); } catch (e) {}
+
+    // Mise à jour Cloud instantanée
+    if (db) {
+      db.collection('as_tshirts_haignere').doc('campagne_actuelle').set({
+        eleves: eleves,
+        derniereMaj: new Date().toISOString()
+      }).catch(err => {
+        console.warn("Erreur écriture Firestore :", err);
+      });
+    }
     rendre();
   }
 
-  /* ---------- Import CSV ---------- */
+  /* ---------- Import CSV OPUSS ---------- */
   function lireFichierCSV(event) {
     const fichier = event.target.files[0];
     if (!fichier) return;
@@ -586,122 +643,4 @@
     if (eleves.length === 0) { notification("Aucune donnée à exporter.", true); return; }
     let csv = "\uFEFFLicence;Nom;Prenom;Niveau;Distribue;Taille;Date\n";
     eleves.forEach(e => {
-      csv += `"${e.licence || ''}";"${e.nom}";"${e.prenom}";"${e.niveau || ''}";"${e.distribue ? 'OUI' : 'NON'}";"${e.taille || ''}";"${e.dateDistribution || ''}"\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `distribution_tshirts_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-  }
-
-  function reinitialiserTout() {
-    if (confirm("Supprimer toute la liste d'élèves enregistrée sur cet appareil ?")) {
-      eleves = [];
-      sauvegarder();
-      notification("Liste vidée.");
-    }
-  }
-
-  /* ---------- Affichage ---------- */
-  function classeNiveau(niveau) {
-    const m = String(niveau || '').match(/[3-6]/);
-    return m ? 'lvl-' + m[0] : '';
-  }
-
-  function initiales(e) {
-    return ((e.prenom || '').trim()[0] || '') + ((e.nom || '').trim()[0] || '');
-  }
-
-  function carte(e) {
-    const details = [e.niveau, e.categorie, e.dateDistribution ? `le ${e.dateDistribution}` : '']
-      .filter(Boolean).map(esc).join(' · ');
-    const cle = esc(e.cleUnique);
-    const pop = (dernierValide === e.cleUnique) ? ' just-done' : '';
-
-    const tete = `
-      <div class="student-head">
-        <div class="avatar ${classeNiveau(e.niveau)}" aria-hidden="true">${esc(initiales(e)).toUpperCase()}</div>
-        <div class="student-info">
-          <div class="student-name"><b>${esc(e.nom)}</b> ${esc(e.prenom)}</div>
-          ${details ? `<div class="student-sub">${details}</div>` : ''}
-        </div>`;
-
-    if (e.distribue) {
-      return `<article class="student done${pop}">${tete}
-          <div class="done-side">
-            <span class="size-tag" title="Taille remise">${esc(e.taille)}</span>
-            <button type="button" class="btn-cancel" data-cancel="${cle}">Annuler</button>
-          </div>
-        </div></article>`;
-    }
-
-    return `<article class="student">${tete}</div>
-      <div class="sizes" role="group" aria-label="Choisir la taille">
-        ${TAILLES.map(t => `<button type="button" class="btn-size${t.length > 3 ? ' small' : ''}" data-cle="${cle}" data-taille="${esc(t)}">${esc(t)}</button>`).join('')}
-      </div></article>`;
-  }
-
-  function etatVide(filtre) {
-    if (eleves.length === 0) {
-      return `<div class="empty">
-        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg></div>
-        <h2>Aucun élève pour l'instant</h2>
-        <p>Importez le fichier CSV exporté depuis OPUSS pour charger la liste des licenciés.</p>
-        <button type="button" class="btn btn-primary" onclick="document.getElementById('csv-file').click()">Importer un CSV</button>
-      </div>`;
-    }
-    if (filtre) {
-      return `<div class="empty"><h2>Aucun résultat</h2><p>Aucun élève ne correspond à « ${esc(filtre)} » dans cet onglet.</p></div>`;
-    }
-    if (onglet === 'wait') {
-      return `<div class="empty"><h2>Tout le monde est servi</h2><p>Chaque élève a reçu son T-shirt.</p></div>`;
-    }
-    return `<div class="empty"><h2>Rien de distribué</h2><p>Les élèves apparaissent ici dès qu'une taille est validée.</p></div>`;
-  }
-
-  function rendre() {
-    const filtreBrut = $('search').value.trim();
-    const filtre = filtreBrut.toLowerCase();
-
-    const total = eleves.length;
-    const nbDone = eleves.filter(e => e.distribue).length;
-    const nbWait = total - nbDone;
-
-    $('count-distribues').textContent = nbDone;
-    $('count-total').textContent = total;
-    $('count-attente').textContent = nbWait;
-    $('count-done-tab').textContent = nbDone;
-
-    const pct = total ? Math.round((nbDone / total) * 100) : 0;
-    $('bar-fill').style.width = pct + '%';
-    $('bar').setAttribute('aria-valuenow', pct);
-
-    document.querySelectorAll('.tab').forEach(t =>
-      t.setAttribute('aria-selected', t.dataset.tab === onglet ? 'true' : 'false'));
-
-    const liste = [...eleves]
-      .filter(e => (onglet === 'done') === !!e.distribue)
-      .filter(e => !filtre || `${e.nom} ${e.prenom} ${e.niveau || ''} ${e.categorie || ''}`.toLowerCase().includes(filtre))
-      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
-
-    $('liste').innerHTML = liste.length ? liste.map(carte).join('') : etatVide(filtreBrut);
-    dernierValide = null;
-  }
-
-  /* ---------- Événements ---------- */
-  $('liste').addEventListener('click', ev => {
-    const taille = ev.target.closest('[data-taille]');
-    if (taille) { validerDistribution(taille.dataset.cle, taille.dataset.taille); return; }
-    const annuler = ev.target.closest('[data-cancel]');
-    if (annuler) annulerDistribution(annuler.dataset.cancel);
-  });
-
-  document.querySelectorAll('.tab').forEach(t =>
-    t.addEventListener('click', () => { onglet = t.dataset.tab; rendre(); }));
-
-  rendre();
-</script>
-
-</body>
-</html>
+      
