@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b3fa6">
+<title>T-shirts AS · Claudie Haigneré</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cobalt: #1b3fa6;
+    --cobalt-deep: #12296e;
+    --cobalt-soft: #dbe7ff;
+    --sun: #ffc61a;
+    --sun-deep: #e6ab00;
+    --sky: #eef3fb;
+    --paper: #ffffff;
+    --ink: #14213d;
+    --muted: #5b6b8c;
+    --line: #d9e2f2;
+    --mint: #1f9d63;
+    --mint-bg: #e3f6ec;
+    --mint-line: #b4e3cb;
+    --coral: #d64550;
+    --coral-bg: #fdebec;
+
+    --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", Impact, sans-serif;
+    --body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--body);
+    color: var(--ink);
+    background: var(--sky);
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--sun);
+    outline-offset: 2px;
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  /* ---------- En-tête façon maillot ---------- */
+  header.hero {
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,.055) 0 18px, transparent 18px 36px),
+      linear-gradient(180deg, var(--cobalt) 0%, var(--cobalt-deep) 100%);
+    color: #fff;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 18px 22px;
+    border-radius: 0 0 28px 28px;
+    position: relative;
+  }
+  .hero-inner { max-width: 720px; margin: 0 auto; }
+
+  .club {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: .88rem;
+    color: #c8d6ff;
+    font-weight: 500;
+  }
+  .club-badge {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--sun);
+    color: var(--cobalt-deep);
+    display: grid; place-items: center;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: .5px;
+    flex: none;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.4rem, 11vw, 3.4rem);
+    line-height: .95;
+    margin: 12px 0 0;
+    letter-spacing: .3px;
+  }
+
+  .score {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .score-num {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 3.6rem;
+    line-height: 1;
+    color: var(--sun);
+  }
+  .score-total {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: #fff;
+    opacity: .85;
+  }
+  .score-label { font-size: .92rem; color: #c8d6ff; margin-left: auto; text-align: right; }
+
+  .bar {
+    height: 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.18);
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0;
+    background: var(--sun);
+    border-radius: 99px;
+    transition: width .7s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: .95rem;
+    cursor: pointer;
+    min-height: 44px;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .btn-sun { background: var(--sun); color: var(--cobalt-deep); }
+  .btn-sun:hover { background: #ffd23f; }
+  .btn-ghost { background: rgba(255,255,255,.14); color: #fff; }
+  .btn-ghost:hover { background: rgba(255,255,255,.22); }
+  .btn-clear { margin-left: auto; background: transparent; color: #ffb3b8; padding-inline: 10px; }
+  .btn-clear:hover { color: #fff; }
+
+  #csv-file { display: none; }
+
+  /* ---------- Recherche + onglets ---------- */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: 14px 14px 10px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    background: linear-gradient(180deg, var(--sky) 78%, rgba(238,243,251,0));
+  }
+  .search {
+    position: relative;
+  }
+  .search svg {
+    position: absolute; left: 14px; top: 50%;
+    width: 20px; height: 20px;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  #search {
+    width: 100%;
+    padding: 14px 14px 14px 44px;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    font-family: var(--body);
+    font-size: 1rem;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  #search::placeholder { color: #8a97b3; }
+  #search:focus { border-color: var(--cobalt); outline: none; }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: #dfe8f7;
+    padding: 4px;
+    border-radius: 14px;
+    margin-top: 10px;
+  }
+  .tab {
+    border: none;
+    background: transparent;
+    padding: 10px 8px;
+    border-radius: 11px;
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px;
+  }
+  .tab .count {
+    font-family: var(--display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    min-width: 28px;
+    padding: 0 8px;
+    border-radius: 99px;
+    background: rgba(20,33,61,.08);
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .tab[aria-selected="true"] {
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(20,33,61,.12);
+  }
+  .tab[aria-selected="true"] .count { background: var(--cobalt); color: #fff; }
+  .tab[data-tab="done"][aria-selected="true"] .count { background: var(--mint); }
+
+  /* ---------- Liste ---------- */
+  .list { padding: 4px 14px 0; display: grid; gap: 10px; }
+
+  .student {
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+  }
+  .student.done {
+    background: var(--mint-bg);
+    border-color: var(--mint-line);
+  }
+  .student.just-done { animation: pop .45s ease; }
+  @keyframes pop {
+    0% { transform: scale(.97); }
+    60% { transform: scale(1.015); }
+    100% { transform: scale(1); }
+  }
+
+  .student-head { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: .5px;
+    flex: none;
+    background: var(--cobalt-soft);
+    color: var(--cobalt);
+  }
+  .lvl-6 { background: #dbe7ff; color: #1b3fa6; }
+  .lvl-5 { background: #ffeeb8; color: #7a5200; }
+  .lvl-4 { background: #d3f3e2; color: #136b43; }
+  .lvl-3 { background: #ffdadd; color: #9c2530; }
+
+  .student-info { min-width: 0; flex: 1; }
+  .student-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .student-name b { font-weight: 800; }
+  .student-sub { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+  .sizes {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .btn-size {
+    border: 2px solid var(--cobalt);
+    background: #fff;
+    color: var(--cobalt);
+    border-radius: 10px;
+    padding: 0;
+    height: 46px;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease, transform .12s ease;
+  }
+  .btn-size.small { font-size: .95rem; }
+  .btn-size:hover { background: var(--cobalt-soft); }
+  .btn-size:active { background: var(--cobalt); color: #fff; transform: scale(.94); }
+
+  .done-side { display: flex; align-items: center; gap: 8px; flex: none; }
+  .size-tag {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #fff;
+    background: var(--mint);
+    padding: 8px 12px;
+    border-radius: 10px;
+    min-width: 46px;
+    text-align: center;
+  }
+  .btn-cancel {
+    border: 1.5px solid #f2b8bc;
+    background: #fff;
+    color: var(--coral);
+    border-radius: 10px;
+    padding: 0 12px;
+    height: 40px;
+    font-weight: 700;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  .btn-cancel:active { background: var(--coral-bg); }
+
+  /* ---------- États vides ---------- */
+  .empty {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--muted);
+  }
+  .empty-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: var(--cobalt-soft);
+    color: var(--cobalt);
+    display: grid; place-items: center;
+  }
+  .empty-icon svg { width: 30px; height: 30px; }
+  .empty h2 {
+    font-family: var(--display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .empty p { margin: 0 auto 16px; max-width: 32ch; line-height: 1.45; }
+  .empty .btn-primary { background: var(--cobalt); color: #fff; }
+
+  /* ---------- Notification ---------- */
+  #notif {
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 24px);
+    opacity: 0;
+    pointer-events: none;
+    max-width: min(92vw, 520px);
+    padding: 13px 18px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: .92rem;
+    box-shadow: 0 8px 24px rgba(20,33,61,.25);
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 20;
+  }
+  #notif.show { opacity: 1; transform: translate(-50%, 0); }
+  #notif.ok { background: var(--ink); color: #fff; }
+  #notif.err { background: var(--coral); color: #fff; }
+
+  @media (max-width: 380px) {
+    .btn-size { height: 42px; font-size: 1.05rem; }
+    .btn-size.small { font-size: .85rem; }
+    .sizes { gap: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="club">
+      <span class="club-badge">AS</span>
+      <span>AS Claudie Haigneré · Rouillac</span>
+    </div>
+    <h1>Distribution<br>des T-shirts</h1>
+
+    <div class="score" aria-live="polite">
+      <span class="score-num" id="count-distribues">0</span>
+      <span class="score-total">/ <span id="count-total">0</span></span>
+      <span class="score-label">T-shirts<br>distribués</span>
+    </div>
+    <div class="bar" role="progressbar" aria-label="Avancement de la distribution" aria-valuemin="0" aria-valuemax="100" id="bar">
+      <div class="bar-fill" id="bar-fill"></div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-sun" onclick="document.getElementById('csv-file').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+        Importer un CSV
+      </button>
+      <input type="file" id="csv-file" accept=".csv,text/csv,text/plain" onchange="lireFichierCSV(event)">
+
+      <button type="button" class="btn btn-ghost" onclick="exporterCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 20h16"/></svg>
+        Exporter
+      </button>
+
+      <button type="button" class="btn btn-clear" onclick="reinitialiserTout()">Vider la liste</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="search" placeholder="Nom, prénom ou niveau" autocomplete="off" oninput="rendre()" aria-label="Rechercher un élève">
+    </label>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" data-tab="wait" aria-selected="true">
+        À distribuer <span class="count" id="count-attente">0</span>
+      </button>
+      <button type="button" class="tab" role="tab" data-tab="done" aria-selected="false">
+        Distribués <span class="count" id="count-done-tab">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="list" id="liste"></div>
+</main>
+
+<div id="notif" role="status"></div>
+
+<script>
+  const TAILLES = ['12/14A', 'XS', 'S', 'M', 'L', 'XL'];
+  const STORAGE_KEY = 'as_tshirts_opuss';
+
+  let eleves = [];
+  try { eleves = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { eleves = []; }
+
+  let onglet = 'wait';
+  let dernierValide = null;
+  let notifTimer;
+
+  const $ = id => document.getElementById(id);
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function notification(texte, estErreur = false) {
+    const el = $('notif');
+    el.className = (estErreur ? 'err' : 'ok') + ' show';
+    el.textContent = texte;
+    clearTimeout(notifTimer);
+    notifTimer = setTimeout(() => el.classList.remove('show'), 4500);
+  }
+
+  function sauvegarder() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves)); }
+    catch (e) { notification("Sauvegarde impossible sur cet appareil.", true); }
+    rendre();
+  }
+
+  /* ---------- Import CSV ---------- */
+  function lireFichierCSV(event) {
+    const fichier = event.target.files[0];
+    if (!fichier) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try { analyserCSV(e.target.result); }
+      catch (err) { notification("Erreur de lecture : " + err.message, true); }
+      event.target.value = '';
+    };
+    reader.onerror = () => notification("Impossible d'ouvrir le fichier.", true);
+    reader.readAsText(fichier, 'UTF-8');
+  }
+
+  function decouperLigne(ligne, sep) {
+    const out = [];
+    let cur = '', guillemets = false;
+    for (let i = 0; i < ligne.length; i++) {
+      const c = ligne[i];
+      if (guillemets) {
+        if (c === '"' && ligne[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') guillemets = false;
+        else cur += c;
+      } else if (c === '"') guillemets = true;
+      else if (c === sep) { out.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur.trim());
+    return out;
+  }
+
+  function analyserCSV(texte) {
+    if (texte.charCodeAt(0) === 0xFEFF) texte = texte.slice(1);
+
+    const lignes = texte.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lignes.length < 2) {
+      notification("Le fichier est vide ou sans données.", true);
+      return;
+    }
+
+    const premiere = lignes[0];
+    const sep = premiere.split(';').length >= premiere.split(',').length ? ';' : ',';
+
+    const entetes = decouperLigne(premiere, sep)
+      .map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+
+    const colLicence = entetes.findIndex(h => h.includes('licence'));
+    const colNom = entetes.findIndex(h => h.includes('nom') && !h.includes('prenom') && !h.includes('etablissement'));
+    const colPrenom = entetes.findIndex(h => h.includes('prenom'));
+    const colClasse = entetes.findIndex(h => h.includes('classe') && !h.includes('niveau'));
+    const colNiveau = entetes.findIndex(h => h.includes('niveau'));
+    const colCat = entetes.findIndex(h => h.includes('categorie'));
+
+    let ajouts = 0, existants = 0;
+
+    for (let i = 1; i < lignes.length; i++) {
+      const cols = decouperLigne(lignes[i], sep);
+      if (cols.length < 2) continue;
+
+      const numLicence = colLicence !== -1 ? cols[colLicence] : '';
+      const nom = (colNom !== -1 ? cols[colNom] : cols[1]) || '';
+      const prenom = (colPrenom !== -1 ? cols[colPrenom] : cols[2]) || '';
+      const classe = (colClasse !== -1 ? cols[colClasse] : '') || '';
+      const niveau = (colNiveau !== -1 ? cols[colNiveau] : '') || '';
+      const categorie = (colCat !== -1 ? cols[colCat] : '') || '';
+
+      if (!nom && !prenom) continue;
+
+      const cleUnique = numLicence ? numLicence.trim() : `${nom.trim().toUpperCase()}_${prenom.trim().toUpperCase()}`;
+      const idx = eleves.findIndex(e => e.cleUnique === cleUnique);
+
+      if (idx === -1) {
+        eleves.push({
+          cleUnique, licence: numLicence,
+          nom: nom.toUpperCase(), prenom,
+          niveau: niveau || classe, categorie,
+          distribue: false, taille: '', dateDistribution: null
+        });
+        ajouts++;
+      } else {
+        if (niveau || classe) eleves[idx].niveau = niveau || classe;
+        existants++;
+      }
+    }
+
+    sauvegarder();
+    notification(`Import terminé : ${ajouts} ajouté${ajouts > 1 ? 's' : ''}, ${existants} déjà présent${existants > 1 ? 's' : ''}.`);
+  }
+
+  /* ---------- Actions ---------- */
+  function validerDistribution(cle, taille) {
+    const e = eleves.find(x => x.cleUnique === cle);
+    if (!e) return;
+    e.distribue = true;
+    e.taille = taille;
+    e.dateDistribution = new Date().toLocaleDateString('fr-FR');
+    dernierValide = cle;
+    sauvegarder();
+  }
+
+  function annulerDistribution(cle) {
+    const e = eleves.find(x => x.cleUnique === cle);
+    if (!e) return;
+    e.distribue = false;
+    e.taille = '';
+    e.dateDistribution = null;
+    sauvegarder();
+  }
+
+  function exporterCSV() {
+    if (eleves.length === 0) { notification("Aucune donnée à exporter.", true); return; }
+    let csv = "\uFEFFLicence;Nom;Prenom;Niveau;Distribue;Taille;Date\n";
+    eleves.forEach(e => {
+      csv += `"${e.licence || ''}";"${e.nom}";"${e.prenom}";"${e.niveau || ''}";"${e.distribue ? 'OUI' : 'NON'}";"${e.taille || ''}";"${e.dateDistribution || ''}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `distribution_tshirts_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  }
+
+  function reinitialiserTout() {
+    if (confirm("Supprimer toute la liste d'élèves enregistrée sur cet appareil ?")) {
+      eleves = [];
+      sauvegarder();
+      notification("Liste vidée.");
+    }
+  }
+
+  /* ---------- Affichage ---------- */
+  function classeNiveau(niveau) {
+    const m = String(niveau || '').match(/[3-6]/);
+    return m ? 'lvl-' + m[0] : '';
+  }
+
+  function initiales(e) {
+    return ((e.prenom || '').trim()[0] || '') + ((e.nom || '').trim()[0] || '');
+  }
+
+  function carte(e) {
+    const details = [e.niveau, e.categorie, e.dateDistribution ? `le ${e.dateDistribution}` : '']
+      .filter(Boolean).map(esc).join(' · ');
+    const cle = esc(e.cleUnique);
+    const pop = (dernierValide === e.cleUnique) ? ' just-done' : '';
+
+    const tete = `
+      <div class="student-head">
+        <div class="avatar ${classeNiveau(e.niveau)}" aria-hidden="true">${esc(initiales(e)).toUpperCase()}</div>
+        <div class="student-info">
+          <div class="student-name"><b>${esc(e.nom)}</b> ${esc(e.prenom)}</div>
+          ${details ? `<div class="student-sub">${details}</div>` : ''}
+        </div>`;
+
+    if (e.distribue) {
+      return `<article class="student done${pop}">${tete}
+          <div class="done-side">
+            <span class="size-tag" title="Taille remise">${esc(e.taille)}</span>
+            <button type="button" class="btn-cancel" data-cancel="${cle}">Annuler</button>
+          </div>
+        </div></article>`;
+    }
+
+    return `<article class="student">${tete}</div>
+      <div class="sizes" role="group" aria-label="Choisir la taille">
+        ${TAILLES.map(t => `<button type="button" class="btn-size${t.length > 3 ? ' small' : ''}" data-cle="${cle}" data-taille="${esc(t)}">${esc(t)}</button>`).join('')}
+      </div></article>`;
+  }
+
+  function etatVide(filtre) {
+    if (eleves.length === 0) {
+      return `<div class="empty">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg></div>
+        <h2>Aucun élève pour l'instant</h2>
+        <p>Importez le fichier CSV exporté depuis OPUSS pour charger la liste des licenciés.</p>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('csv-file').click()">Importer un CSV</button>
+      </div>`;
+    }
+    if (filtre) {
+      return `<div class="empty"><h2>Aucun résultat</h2><p>Aucun élève ne correspond à « ${esc(filtre)} » dans cet onglet.</p></div>`;
+    }
+    if (onglet === 'wait') {
+      return `<div class="empty"><h2>Tout le monde est servi</h2><p>Chaque élève a reçu son T-shirt.</p></div>`;
+    }
+    return `<div class="empty"><h2>Rien de distribué</h2><p>Les élèves apparaissent ici dès qu'une taille est validée.</p></div>`;
+  }
+
+  function rendre() {
+    const filtreBrut = $('search').value.trim();
+    const filtre = filtreBrut.toLowerCase();
+
+    const total = eleves.length;
+    const nbDone = eleves.filter(e => e.distribue).length;
+    const nbWait = total - nbDone;
+
+    $('count-distribues').textContent = nbDone;
+    $('count-total').textContent = total;
+    $('count-attente').textContent = nbWait;
+    $('count-done-tab').textContent = nbDone;
+
+    const pct = total ? Math.round((nbDone / total) * 100) : 0;
+    $('bar-fill').style.width = pct + '%';
+    $('bar').setAttribute('aria-valuenow', pct);
+
+    document.querySelectorAll('.tab').forEach(t =>
+      t.setAttribute('aria-selected', t.dataset.tab === onglet ? 'true' : 'false'));
+
+    const liste = [...eleves]
+      .filter(e => (onglet === 'done') === !!e.distribue)
+      .filter(e => !filtre || `${e.nom} ${e.prenom} ${e.niveau || ''} ${e.categorie || ''}`.toLowerCase().includes(filtre))
+      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
+
+    $('liste').innerHTML = liste.length ? liste.map(carte).join('') : etatVide(filtreBrut);
+    dernierValide = null;
+  }
+
+  /* ---------- Événements ---------- */
+  $('liste').addEventListener('click', ev => {
+    const taille = ev.target.closest('[data-taille]');
+    if (taille) { validerDistribution(taille.dataset.cle, taille.dataset.taille); return; }
+    const annuler = ev.target.closest('[data-cancel]');
+    if (annuler) annulerDistribution(annuler.dataset.cancel);
+  });
+
+  document.querySelectorAll('.tab').forEach(t =>
+    t.addEventListener('click', () => { onglet = t.dataset.tab; rendre(); }));
+
+  rendre();
+</script>
+
+</body>
+</html>
