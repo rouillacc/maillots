@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+4<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -99,6 +99,7 @@
   }
   .cloud-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffaa00; }
   .cloud-dot.online { background: #34d399; box-shadow: 0 0 8px #34d399; }
+  .cloud-dot.err { background: var(--coral); }
 
   h1 {
     font-family: var(--display);
@@ -447,9 +448,6 @@
 <div id="notif" role="status"></div>
 
 <script>
-  /* =====================================================================
-     CONFIGURATION FIREBASE DU PROJET MAILLOTS-A8927
-     ===================================================================== */
   const firebaseConfig = {
     apiKey: "AIzaSyB-YxRRl5hqloBnM1lnXn49v8jIKdg6V58",
     authDomain: "maillots-a8927.firebaseapp.com",
@@ -468,7 +466,7 @@
 
   let onglet = 'wait';
   let dernierValide = null;
-  let notifTimer;
+  let notifTimer = null;
   let db = null;
   let resetTimer = null;
 
@@ -486,7 +484,7 @@
     notifTimer = setTimeout(() => el.classList.remove('show'), 4500);
   }
 
-  /* ---------- Initialisation Firestore Temps Réel ---------- */
+  /* ---------- Initialisation Firestore ---------- */
   function initFirestore() {
     try {
       if (!firebase.apps.length) {
@@ -494,52 +492,66 @@
       }
       db = firebase.firestore();
 
-      // Synchronisation en direct
       db.collection('as_tshirts_haignere').doc('campagne_actuelle').onSnapshot(doc => {
         $('cloud-text').textContent = "En direct";
         $('cloud-dot').className = "cloud-dot online";
 
-        if (doc.exists && doc.data().eleves) {
-          eleves = doc.data().eleves;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves));
-          rendre();
+        if (doc.exists) {
+          const donneesCloud = doc.data().eleves;
+          // Sécurité : n'écrase pas si la base cloud est vide alors qu'on a déjà des élèves en local
+          if (Array.isArray(donneesCloud) && (donneesCloud.length > 0 || eleves.length === 0)) {
+            eleves = donneesCloud;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves)); } catch (e) {}
+            rendre();
+          }
         }
       }, err => {
-        console.warn("Connexion Firestore impossible :", err);
-        $('cloud-text').textContent = "Hors ligne";
-        $('cloud-dot').className = "cloud-dot";
+        console.warn("Erreur Firestore :", err);
+        $('cloud-text').textContent = "Hors ligne (Local)";
+        $('cloud-dot').className = "cloud-dot err";
       });
     } catch(err) {
       console.warn("Erreur init Firebase :", err);
       $('cloud-text').textContent = "Mode Local";
+      $('cloud-dot').className = "cloud-dot";
     }
   }
 
   function sauvegarder() {
+    // 1. Sauvegarde locale immédiate (infaillible)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(eleves)); } catch (e) {}
+    rendre();
 
-    // Mise à jour Cloud instantanée
+    // 2. Envoi sur le Cloud Firestore
     if (db) {
       db.collection('as_tshirts_haignere').doc('campagne_actuelle').set({
         eleves: eleves,
         derniereMaj: new Date().toISOString()
       }).catch(err => {
-        console.warn("Erreur écriture Firestore :", err);
+        console.error("Erreur Firestore :", err);
+        notification("Erreur Cloud : règles Firestore non autorisées", true);
       });
     }
-    rendre();
   }
 
-  /* ---------- Import CSV OPUSS ---------- */
+  /* ---------- Découpage CSV OPUSS ---------- */
   function lireFichierCSV(event) {
     const fichier = event.target.files[0];
     if (!fichier) return;
+
+    notification("Lecture du fichier en cours...");
     const reader = new FileReader();
+
     reader.onload = function(e) {
-      try { analyserCSV(e.target.result); }
-      catch (err) { notification("Erreur de lecture : " + err.message, true); }
+      try {
+        analyserCSV(e.target.result);
+      } catch (err) {
+        console.error(err);
+        notification("Erreur lors de l'analyse : " + err.message, true);
+      }
       event.target.value = '';
     };
+
     reader.onerror = () => notification("Impossible d'ouvrir le fichier.", true);
     reader.readAsText(fichier, 'UTF-8');
   }
@@ -562,19 +574,22 @@
   }
 
   function analyserCSV(texte) {
-    if (texte.charCodeAt(0) === 0xFEFF) texte = texte.slice(1);
+    // Suppression du BOM UTF-8 éventuel
+    if (texte.charCodeAt(0) === 0xFEFF) {
+      texte = texte.slice(1);
+    }
 
     const lignes = texte.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lignes.length < 2) {
-      notification("Le fichier est vide ou sans données.", true);
+      notification("Le fichier CSV est vide ou sans lignes.", true);
       return;
     }
 
     const premiere = lignes[0];
-    const sep = premiere.split(';').length >= premiere.split(',').length ? ';' : ',';
+    const sep = (premiere.split(';').length >= premiere.split(',').length) ? ';' : ',';
 
     const entetes = decouperLigne(premiere, sep)
-      .map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+      .map(h => (h || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 
     const colLicence = entetes.findIndex(h => h.includes('licence'));
     const colNom = entetes.findIndex(h => h.includes('nom') && !h.includes('prenom') && !h.includes('etablissement'));
@@ -589,58 +604,41 @@
       const cols = decouperLigne(lignes[i], sep);
       if (cols.length < 2) continue;
 
-      const numLicence = colLicence !== -1 ? cols[colLicence] : '';
-      const nom = (colNom !== -1 ? cols[colNom] : cols[1]) || '';
-      const prenom = (colPrenom !== -1 ? cols[colPrenom] : cols[2]) || '';
-      const classe = (colClasse !== -1 ? cols[colClasse] : '') || '';
-      const niveau = (colNiveau !== -1 ? cols[colNiveau] : '') || '';
-      const categorie = (colCat !== -1 ? cols[colCat] : '') || '';
+      const numLicence = (colLicence !== -1 && cols[colLicence]) ? cols[colLicence].trim() : '';
+      const nom = ((colNom !== -1 && cols[colNom]) ? cols[colNom] : (cols[1] || '')).trim();
+      const prenom = ((colPrenom !== -1 && cols[colPrenom]) ? cols[colPrenom] : (cols[2] || '')).trim();
+      const classe = (colClasse !== -1 && cols[colClasse]) ? cols[colClasse].trim() : '';
+      const niveau = (colNiveau !== -1 && cols[colNiveau]) ? cols[colNiveau].trim() : '';
+      const categorie = (colCat !== -1 && cols[colCat]) ? cols[colCat].trim() : '';
 
       if (!nom && !prenom) continue;
 
-      const cleUnique = numLicence ? numLicence.trim() : `${nom.trim().toUpperCase()}_${prenom.trim().toUpperCase()}`;
+      const cleUnique = numLicence ? numLicence : `${nom.toUpperCase()}_${prenom.toUpperCase()}`;
       const idx = eleves.findIndex(e => e.cleUnique === cleUnique);
 
       if (idx === -1) {
         eleves.push({
-          cleUnique, licence: numLicence,
-          nom: nom.toUpperCase(), prenom,
-          niveau: niveau || classe, categorie,
-          distribue: false, taille: '', dateDistribution: null
+          cleUnique: String(cleUnique),
+          licence: String(numLicence),
+          nom: String(nom.toUpperCase()),
+          prenom: String(prenom),
+          niveau: String(niveau || classe || ''),
+          categorie: String(categorie || ''),
+          distribue: false,
+          taille: '',
+          dateDistribution: ''
         });
         ajouts++;
       } else {
-        if (niveau || classe) eleves[idx].niveau = niveau || classe;
+        if (niveau || classe) eleves[idx].niveau = String(niveau || classe);
         existants++;
       }
     }
 
     sauvegarder();
-    notification(`Import terminé : ${ajouts} ajouté${ajouts > 1 ? 's' : ''}, ${existants} déjà présent${existants > 1 ? 's' : ''}.`);
+    notification(`✅ ${ajouts} élève(s) ajouté(s), ${existants} déjà présent(s).`);
   }
 
   /* ---------- Actions ---------- */
   function validerDistribution(cle, taille) {
-    const e = eleves.find(x => x.cleUnique === cle);
-    if (!e) return;
-    e.distribue = true;
-    e.taille = taille;
-    e.dateDistribution = new Date().toLocaleDateString('fr-FR');
-    dernierValide = cle;
-    sauvegarder();
-  }
-
-  function annulerDistribution(cle) {
-    const e = eleves.find(x => x.cleUnique === cle);
-    if (!e) return;
-    e.distribue = false;
-    e.taille = '';
-    e.dateDistribution = null;
-    sauvegarder();
-  }
-
-  function exporterCSV() {
-    if (eleves.length === 0) { notification("Aucune donnée à exporter.", true); return; }
-    let csv = "\uFEFFLicence;Nom;Prenom;Niveau;Distribue;Taille;Date\n";
-    eleves.forEach(e => {
-      
+    const e = eleves.find(x => x.c
